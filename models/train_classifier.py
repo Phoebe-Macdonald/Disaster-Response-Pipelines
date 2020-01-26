@@ -1,24 +1,65 @@
 import sys
+# import libraries
+import pandas as pd
+import sqlalchemy
+import re
+import nltk
+nltk.download('punkt')
+nltk.download('stopwords')
+nltk.download('wordnet')
+from nltk.corpus import stopwords
+from nltk.stem.wordnet import WordNetLemmatizer
+
+from sklearn.pipeline import Pipeline
+
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.multioutput import MultiOutputClassifier
+
+from sklearn.model_selection import train_test_split, GridSearchCV
+
+from sklearn.metrics import classification_report
+
+import pickle
 
 
 def load_data(database_filepath):
-    pass
+    engine = sqlalchemy.create_engine('sqlite:///Phoebe_database.db')
+    df = pd.read_sql_table(database_filepath, engine)
 
+    X = df['message']
+    Y = df.iloc[:, 4:]
+    return X, Y
 
 def tokenize(text):
-    pass
+    text = re.sub(r"[^a-zA-Z0-9]", " ", text.lower())
+    words = word_tokenize(text)
+    words = [w for w in words if w not in stopwords.words("english")]
+    lemmed_words = [WordNetLemmatizer().lemmatize(w) for w in words]
+    return lemmed_words
 
 
 def build_model():
-    pass
+    pipeline = Pipeline([
+        ('vect', CountVectorizer(tokenizer=tokenize)),
+        ('tfidf', TfidfTransformer()),
+        ('clf', MultiOutputClassifier(RandomForestClassifier(), n_jobs=-1))
+    ])
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
+    pipeline.fit(X_train, Y_train)
+    ### add in grid search
+    return model
 
 
 def evaluate_model(model, X_test, Y_test, category_names):
-    pass
+    predictions = model.predict(X_test)
+    for i in range(len(Y_test.columns)):
+        print(category_names[i], classification_report(Y_test.iloc[:, i], predictions[:, i]))
 
 
 def save_model(model, model_filepath):
-    pass
+    pickle.dump(model, open(model_filepath, 'wb'))
 
 
 def main():
