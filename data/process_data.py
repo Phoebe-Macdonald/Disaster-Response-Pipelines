@@ -41,7 +41,7 @@ def clean_data(df):
 
 
 def save_data(df, database_filename):
-    engine = create_engine('sqlite:///Phoebe_database.db')
+    engine = create_engine('sqlite:///data/DisasterResponseDb.db')
     df.to_sql(database_filename, engine, index=False)
 
 
